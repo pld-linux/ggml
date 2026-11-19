@@ -1,0 +1,68 @@
+From 0f62b578104dbb779727f9914d3affc6045d1b25 Mon Sep 17 00:00:00 2001
+From: miyanyan <1138989048@qq.com>
+Date: Sat, 14 Nov 2026 23:11:58 +0800
+Subject: [PATCH] vulkan : fix 32-bit compilation
+
+---
+ ggml/src/ggml-vulkan/ggml-vulkan-comm.cpp | 4 ++--
+ ggml/src/ggml-vulkan/ggml-vulkan-common.h | 2 +-
+ ggml/src/ggml-vulkan/ggml-vulkan.cpp      | 4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan-comm.cpp b/ggml/src/ggml-vulkan/ggml-vulkan-comm.cpp
+index 84af0661a38..322be993ad6 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan-comm.cpp
++++ b/ggml/src/ggml-vulkan/ggml-vulkan-comm.cpp
+@@ -335,7 +335,7 @@ static int ggml_vk_comm_sfd_export(vk_comm_device & d) {
+     int fd = -1;
+     VkSemaphoreGetFdInfoKHR gi{};
+     gi.sType      = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR;
+-    gi.semaphore  = d.sfd.sem;
++    gi.semaphore  = static_cast<VkSemaphore>(d.sfd.sem);
+     gi.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT;
+     const VkResult result = d.sfd.get_fd((VkDevice) d.ctx->device->device, &gi, &fd);
+     if (result != VK_SUCCESS) {
+@@ -348,7 +348,7 @@ static int ggml_vk_comm_sfd_export(vk_comm_device & d) {
+ static void ggml_vk_comm_sfd_import(vk_comm_device & d, vk::Semaphore sem, int fd) {
+     VkImportSemaphoreFdInfoKHR isi{};
+     isi.sType      = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR;
+-    isi.semaphore  = sem;
++    isi.semaphore  = static_cast<VkSemaphore>(sem);
+     isi.flags      = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT;
+     isi.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT;
+     isi.fd         = fd;
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan-common.h b/ggml/src/ggml-vulkan/ggml-vulkan-common.h
+index b7406293140..a190f1de2b3 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan-common.h
++++ b/ggml/src/ggml-vulkan/ggml-vulkan-common.h
+@@ -70,7 +70,7 @@ void ggml_vk_buffer_memset(vk_buffer& dst, size_t offset, uint32_t c, size_t siz
+ vk_buffer ggml_vk_buffer_from_host_ptr(vk_device & device, void * ptr, size_t size);
+ 
+ // pipelines
+-uint64_t vk_tensor_offset(const ggml_tensor * tensor);
++size_t vk_tensor_offset(const ggml_tensor * tensor);
+ uint32_t get_misalign_bytes(const ggml_backend_vk_context * ctx, const ggml_tensor * t);
+ void ggml_vk_wait_for_fence(ggml_backend_vk_context * ctx);
+ void ggml_pipeline_request_descriptor_sets(ggml_backend_vk_context *ctx, vk_pipeline& pipeline, uint32_t n);
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan.cpp b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+index bb5aec3657e..2c317af6fc9 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan.cpp
++++ b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+@@ -259,7 +259,7 @@ void ggml_vk_print_device_lost_info(const vk_device& device) {
+ }
+ void * const vk_ptr_base = (void *)(uintptr_t) 0x1000;  // NOLINT
+ 
+-uint64_t vk_tensor_offset(const ggml_tensor * tensor) {
++size_t vk_tensor_offset(const ggml_tensor * tensor) {
+     if (tensor->view_src) {
+         return (uint8_t *) tensor->view_src->data - (uint8_t *) vk_ptr_base;
+     }
+@@ -17077,7 +17077,7 @@ void vk_queue_handle_unsynchronized::submit(vk::ArrayProxy<const vk::SubmitInfo>
+ 
+ vk_device_struct::~vk_device_struct() {
+     // the build failed before the device was created, nothing to destroy
+-    if (device == VK_NULL_HANDLE) {
++    if (!device) {
+         return;
+     }
+ 

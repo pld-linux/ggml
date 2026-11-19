@@ -23,13 +23,14 @@
 Summary:	Tensor library for machine learning
 Summary(pl.UTF-8):	Biblioteka tensorów do uczenia maszynowego
 Name:		ggml
-Version:	0.27.0
+Version:	1.0.0
 Release:	1
 License:	MIT
 Group:		Libraries
 #Source0Download: https://github.com/ggml-org/ggml/releases
 Source0:	https://github.com/ggml-org/ggml/archive/v%{version}/%{name}-%{version}.tar.gz
-# Source0-md5:	234a9d5bca089e2ba40a7870b5c5f2f0
+# Source0-md5:	ab0e755d747581905a5bf14de0535beb
+Patch0:		%{name}-vulkan-32bit.patch
 URL:		https://github.com/ggml-org/ggml
 %{?with_opencl:BuildRequires:	OpenCL-devel}
 %{?with_vulkan:BuildRequires:	Vulkan-Loader-devel}
@@ -77,7 +78,10 @@ tensorowa do uczenia maszynowego o minimalnej konfiguracji.
 Summary:	Header files for GGML library
 Summary(pl.UTF-8):	Pliki nagłówkowe biblioteki GGML
 Group:		Development/Libraries
-Requires:	%{name} = %{version}-%{release}
+Requires:	%{name}%{?_isa} = %{version}-%{release}
+# whisper.cpp-1.7.6 provided unversioned ggml libraries + headers
+Conflicts:	whisper.cpp < 1.8
+Conflicts:	whisper.cpp-devel < 1.8
 
 %description devel
 Header files for GGML library.
@@ -87,6 +91,7 @@ Pliki nagłówkowe biblioteki GGML.
 
 %prep
 %setup -q
+%patch -P0 -p2
 
 %build
 %cmake -B build \
@@ -142,9 +147,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644,root,root,755)
 %doc AUTHORS LICENSE README.md docs/gguf.md
 %{_libdir}/libggml.so.*.*.*
-%ghost %{_libdir}/libggml.so.0
+%ghost %{_libdir}/libggml.so.1
 %{_libdir}/libggml-base.so.*.*.*
-%ghost %{_libdir}/libggml-base.so.0
+%ghost %{_libdir}/libggml-base.so.1
 %dir %{_libdir}/ggml
 # TODO: subpackages for blas, opencl, rpc, vulkan?
 %if %{with blas}
