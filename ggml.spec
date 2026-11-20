@@ -24,13 +24,14 @@ Summary:	Tensor library for machine learning
 Summary(pl.UTF-8):	Biblioteka tensorów do uczenia maszynowego
 Name:		ggml
 Version:	1.0.0
-Release:	1
+Release:	2
 License:	MIT
 Group:		Libraries
 #Source0Download: https://github.com/ggml-org/ggml/releases
 Source0:	https://github.com/ggml-org/ggml/archive/v%{version}/%{name}-%{version}.tar.gz
 # Source0-md5:	ab0e755d747581905a5bf14de0535beb
 Patch0:		%{name}-vulkan-32bit.patch
+Patch1:		%{name}-hbm.patch
 URL:		https://github.com/ggml-org/ggml
 %{?with_opencl:BuildRequires:	OpenCL-devel}
 %{?with_vulkan:BuildRequires:	Vulkan-Loader-devel}
@@ -92,6 +93,7 @@ Pliki nagłówkowe biblioteki GGML.
 %prep
 %setup -q
 %patch -P0 -p2
+%patch -P1 -p1
 
 %build
 %cmake -B build \
